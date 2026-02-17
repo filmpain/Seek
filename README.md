@@ -27,11 +27,13 @@ Visit the live app: [https://filmpain.github.io/Seek/](https://filmpain.github.i
 
 ## API Information
 
-This app uses the NYC MTA Bus Time API with key: `b66fd694-3c4e-459d-b49d-f3213f650621`
+This app uses the NYC MTA Bus Time API for real-time transit data.
 
 ### API Endpoints Used:
 - `stops-for-location` - Find nearby bus stops
 - `stop-monitoring` - Get real-time arrival predictions
+
+**Note**: The MTA Bus Time API key included in this application is intended for public client-side use. NYC MTA provides these keys specifically for web and mobile applications to access public transit data. For production deployments with high traffic, consider implementing rate limiting or using a backend proxy.
 
 ## Local Development
 

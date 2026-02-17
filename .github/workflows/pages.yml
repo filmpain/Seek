@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - copilot/add-public-gtfs-data
   workflow_dispatch:
 
 permissions:

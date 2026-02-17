@@ -1,4 +1,6 @@
 // NYC MTA Bus Time API Configuration
+// Note: This API key is provided by NYC MTA for public client-side applications
+// to access real-time transit data. It's designed to be used in web/mobile apps.
 const MTA_API_KEY = 'b66fd694-3c4e-459d-b49d-f3213f650621';
 const MTA_BASE_URL = 'https://bustime.mta.info/api';
 
