@@ -105,6 +105,17 @@ This site is automatically deployed to GitHub Pages using GitHub Actions.
 
 **Live Site:** [https://filmpain.github.io/Seek/](https://filmpain.github.io/Seek/)
 
+### ⚠️ Important: GitHub Pages Configuration Required
+
+**To enable deployment, you must configure GitHub Pages settings:**
+
+1. Go to repository **Settings** → **Pages**
+2. Under "Build and deployment" → **Source**
+3. Select **"GitHub Actions"** (NOT "Deploy from a branch")
+4. Save the settings
+
+Once configured, the workflow will automatically deploy on every push.
+
 ### Automatic Deployment
 
 The site automatically deploys when changes are pushed to:
@@ -123,6 +134,13 @@ You can also trigger a manual deployment:
 1. Go to the "Actions" tab in GitHub
 2. Select "Deploy to GitHub Pages" workflow
 3. Click "Run workflow"
+
+### Troubleshooting
+
+If you see "does not contain the requested file" error:
+- Verify GitHub Pages source is set to "GitHub Actions" in repository settings
+- Check that the workflow ran successfully in the Actions tab
+- See `GITHUB_PAGES_SETUP.md` for detailed setup instructions
 
 ## License
 
