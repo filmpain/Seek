@@ -6,8 +6,8 @@ const MTA_BASE_URL = 'https://bustime.mta.info/api';
 
 // Supabase Configuration
 // Note: Using Supabase for backend storage of user preferences and favorites
-const SUPABASE_URL = 'https://your-project.supabase.co'; // Will be auto-detected from token
-const SUPABASE_ANON_KEY = 'sbp_e93229dd77e37821acfe76ddee3ab8a0c2a15a51';
+const SUPABASE_URL = 'https://oqwgwwjlymliujvaayoa.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1NBUdrsyLZVLPJbyntChHQ_9JffF-l1';
 
 // Initialize Supabase client
 let supabase = null;
@@ -16,14 +16,12 @@ let supabaseEnabled = false;
 // Try to initialize Supabase when the library loads
 try {
     if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        // For demo purposes, we'll use a public Supabase instance
-        // In production, replace with your actual Supabase URL
         supabase = window.supabase.createClient(
-            'https://placeholder.supabase.co',
+            SUPABASE_URL,
             SUPABASE_ANON_KEY
         );
         supabaseEnabled = true;
-        console.log('Supabase client initialized');
+        console.log('Supabase client initialized with URL:', SUPABASE_URL);
     }
 } catch (error) {
     console.warn('Supabase initialization failed, using localStorage fallback:', error);
