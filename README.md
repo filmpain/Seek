@@ -99,6 +99,31 @@ See `SUPABASE_SCHEMA.md` for detailed setup instructions.
 - [ ] Offline support with service workers
 - [ ] Historical arrival data and analytics
 
+## Deployment
+
+This site is automatically deployed to GitHub Pages using GitHub Actions.
+
+**Live Site:** [https://filmpain.github.io/Seek/](https://filmpain.github.io/Seek/)
+
+### Automatic Deployment
+
+The site automatically deploys when changes are pushed to:
+- `main` branch
+- `copilot/add-public-gtfs-data` branch
+
+The deployment workflow:
+1. Runs on every push to the configured branches
+2. Uploads all static files (HTML, CSS, JS)
+3. Deploys to GitHub Pages environment
+4. Site is live within a few minutes
+
+### Manual Deployment
+
+You can also trigger a manual deployment:
+1. Go to the "Actions" tab in GitHub
+2. Select "Deploy to GitHub Pages" workflow
+3. Click "Run workflow"
+
 ## License
 
 MIT License - Feel free to use and modify
