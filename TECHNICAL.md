@@ -8,14 +8,16 @@ Seek is a single-page application (SPA) built with vanilla JavaScript, CSS, and 
 
 ```
 Seek/
-├── index.html          # Main HTML structure
-├── styles.css          # Complete styling with theming
-├── app.js              # Application logic and API integration
-├── README.md           # User documentation
-├── .gitignore          # Git ignore rules
+├── index.html            # Main HTML structure
+├── styles.css            # Complete styling with theming
+├── app.js                # Application logic and API integration
+├── README.md             # User documentation
+├── TECHNICAL.md          # Developer documentation
+├── SUPABASE_SCHEMA.md    # Database schema and setup
+├── .gitignore            # Git ignore rules
 └── .github/
     └── workflows/
-        └── pages.yml   # GitHub Pages deployment workflow
+        └── pages.yml     # GitHub Pages deployment workflow
 ```
 
 ## Core Features
@@ -49,10 +51,38 @@ Seek/
 - Smooth transitions between themes
 - CSS variables for maintainability
 
-### 6. Demo Mode
+### 6. Favorite Stops
+- Save favorite stops for quick access
+- Star/unstar stops with single click
+- Toggle between nearby and favorites view
+- Favorites sorted by distance from current location
+- Dual storage: Supabase (cloud) + localStorage (fallback)
+
+### 7. Demo Mode
 - Automatic fallback when API is unavailable
 - Sample data for testing and demonstrations
 - Realistic NYC bus route information
+
+## Backend Integration
+
+### Supabase
+
+**Configuration**:
+```javascript
+const SUPABASE_URL = 'https://placeholder.supabase.co';
+const SUPABASE_ANON_KEY = 'sbp_e93229dd77e37821acfe76ddee3ab8a0c2a15a51';
+```
+
+**Features**:
+- Cloud storage for user favorites
+- Anonymous user identification
+- Automatic fallback to localStorage
+- Real-time data synchronization
+
+**Database Tables**:
+- `favorites` - User's saved bus stops
+
+See `SUPABASE_SCHEMA.md` for complete database schema and setup instructions.
 
 ## API Integration
 
@@ -88,6 +118,14 @@ The application uses a simple state object:
 state = {
     currentLocation: { lat, lon, accuracy },
     nearbyStops: [...],
+    selectedStop: { id, name, ... },
+    arrivals: [...],
+    theme: 'light' | 'dark',
+    favorites: [...],
+    showingFavorites: false,
+    userId: 'user_...'
+}
+```
     selectedStop: { id, name, ... },
     arrivals: [...],
     theme: 'light' | 'dark'

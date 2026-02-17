@@ -63,7 +63,7 @@ const elements = {
 
 // Generate a unique user ID for anonymous usage
 function generateUserId() {
-    const userId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    const userId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
     localStorage.setItem(STORAGE_PREFIX + 'userId', userId);
     return userId;
 }
@@ -155,16 +155,9 @@ async function saveFavorites() {
         localStorage.setItem(STORAGE_PREFIX + 'favorites', JSON.stringify(state.favorites));
         
         if (supabaseEnabled && supabase) {
-            // Save to Supabase
-            // First, delete all existing favorites for this user
-            await supabase
-                .from('favorites')
-                .delete()
-                .eq('user_id', state.userId);
-            
-            // Then insert the current favorites
+            // Save to Supabase using upsert to avoid delete-all pattern
             if (state.favorites.length > 0) {
-                const favoritesToInsert = state.favorites.map(fav => ({
+                const favoritesToUpsert = state.favorites.map(fav => ({
                     user_id: state.userId,
                     stop_id: fav.id,
                     stop_code: fav.code,
@@ -175,10 +168,18 @@ async function saveFavorites() {
                 
                 const { error } = await supabase
                     .from('favorites')
-                    .insert(favoritesToInsert);
+                    .upsert(favoritesToUpsert, {
+                        onConflict: 'user_id,stop_id'
+                    });
                 
                 if (error) throw error;
                 console.log('Saved favorites to Supabase');
+            } else {
+                // If no favorites, delete all for this user
+                await supabase
+                    .from('favorites')
+                    .delete()
+                    .eq('user_id', state.userId);
             }
         }
     } catch (error) {
@@ -187,37 +188,6 @@ async function saveFavorites() {
     }
 }
 
-async function toggleFavorite(stop) {
-    const index = state.favorites.findIndex(fav => fav.id === stop.id);
-    
-    if (index >= 0) {
-        // Remove from favorites
-        state.favorites.splice(index, 1);
-        showStatus('Removed from favorites', 'success');
-    } else {
-        // Add to favorites
-        state.favorites.push({
-            id: stop.id,
-            code: stop.code,
-            name: stop.name,
-            lat: stop.lat,
-            lon: stop.lon
-        });
-        showStatus('Added to favorites', 'success');
-    }
-    
-    await saveFavorites();
-    
-    // Update display
-    if (state.showingFavorites) {
-        displayFavorites();
-    } else {
-        displayStops();
-    }
-    
-    // Hide status after 2 seconds
-    setTimeout(hideStatus, 2000);
-}
 
 function isFavorite(stopId) {
     return state.favorites.some(fav => fav.id === stopId);
@@ -260,8 +230,8 @@ function displayFavorites() {
     
     elements.favoritesList.innerHTML = favoritesWithDistance.map(stop => `
         <div class="stop-card ${state.selectedStop && state.selectedStop.id === stop.id ? 'selected' : ''}" 
-             onclick="selectStop('${stop.id}')">
-            <button class="favorite-btn active" onclick="event.stopPropagation(); toggleFavorite(${JSON.stringify(stop).replace(/"/g, '&quot;')})">
+             data-stop-id="${stop.id}">
+            <button class="favorite-btn active" data-stop-id="${stop.id}" data-action="toggle-favorite">
                 ⭐
             </button>
             <div class="stop-name">${stop.name}</div>
@@ -274,6 +244,9 @@ function displayFavorites() {
             ` : ''}
         </div>
     `).join('');
+    
+    // Add event listeners after rendering
+    addStopCardListeners(elements.favoritesList);
 }
 
 // Geolocation
@@ -463,10 +436,9 @@ function displayStops() {
     
     elements.stopsList.innerHTML = state.nearbyStops.map(stop => `
         <div class="stop-card ${state.selectedStop && state.selectedStop.id === stop.id ? 'selected' : ''}" 
-             data-stop-id="${stop.id}" 
-             onclick="selectStop('${stop.id}')">
+             data-stop-id="${stop.id}">
             <button class="favorite-btn ${isFavorite(stop.id) ? 'active' : ''}" 
-                    onclick="event.stopPropagation(); toggleFavorite(${JSON.stringify(stop).replace(/"/g, '&quot;')})">
+                    data-stop-id="${stop.id}" data-action="toggle-favorite">
                 ${isFavorite(stop.id) ? '⭐' : '☆'}
             </button>
             <div class="stop-name">${stop.name}</div>
@@ -477,6 +449,76 @@ function displayStops() {
             </div>
         </div>
     `).join('');
+    
+    // Add event listeners after rendering
+    addStopCardListeners(elements.stopsList);
+}
+
+// Event delegation for stop cards
+function addStopCardListeners(container) {
+    container.addEventListener('click', (event) => {
+        const target = event.target;
+        
+        // Handle favorite button clicks
+        if (target.dataset.action === 'toggle-favorite' || target.closest('[data-action="toggle-favorite"]')) {
+            event.stopPropagation();
+            const button = target.dataset.action === 'toggle-favorite' ? target : target.closest('[data-action="toggle-favorite"]');
+            const stopId = button.dataset.stopId;
+            
+            // Find the stop in nearby or favorites
+            let stop = state.nearbyStops.find(s => s.id === stopId);
+            if (!stop) {
+                stop = state.favorites.find(s => s.id === stopId);
+            }
+            
+            if (stop) {
+                toggleFavoriteById(stop);
+            }
+            return;
+        }
+        
+        // Handle stop card clicks
+        const stopCard = target.closest('.stop-card');
+        if (stopCard) {
+            const stopId = stopCard.dataset.stopId;
+            if (stopId) {
+                selectStop(stopId);
+            }
+        }
+    });
+}
+
+// Updated toggleFavorite to work with object reference
+async function toggleFavoriteById(stop) {
+    const index = state.favorites.findIndex(fav => fav.id === stop.id);
+    
+    if (index >= 0) {
+        // Remove from favorites
+        state.favorites.splice(index, 1);
+        showStatus('Removed from favorites', 'success');
+    } else {
+        // Add to favorites
+        state.favorites.push({
+            id: stop.id,
+            code: stop.code,
+            name: stop.name,
+            lat: stop.lat,
+            lon: stop.lon
+        });
+        showStatus('Added to favorites', 'success');
+    }
+    
+    await saveFavorites();
+    
+    // Update display
+    if (state.showingFavorites) {
+        displayFavorites();
+    } else {
+        displayStops();
+    }
+    
+    // Hide status after 2 seconds
+    setTimeout(hideStatus, 2000);
 }
 
 function selectStop(stopId) {

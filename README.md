@@ -11,6 +11,8 @@ Find the closest transit option - Real-time NYC bus tracking
 - 🌓 **Light & Dark Mode** - Seamless theme switching
 - 📱 **Responsive Design** - Works on all devices
 - 🔄 **Auto-refresh** - Updates arrival times every 30 seconds
+- ⭐ **Favorite Stops** - Save your favorite stops for quick access
+- 💾 **Supabase Backend** - Cloud storage for favorites (with localStorage fallback)
 
 ## Live Demo
 
@@ -21,6 +23,7 @@ Visit the live app: [https://filmpain.github.io/Seek/](https://filmpain.github.i
 - **NYC MTA Bus Time API** - Real-time transit data
 - **Geolocation API** - Precise location tracking
 - **OpenStreetMap Nominatim** - Reverse geocoding for cross streets
+- **Supabase** - Backend database for favorites and preferences
 - **Vanilla JavaScript** - No framework dependencies
 - **CSS Variables** - Smooth theme transitions
 - **GitHub Pages** - Static site hosting
@@ -63,8 +66,20 @@ php -S localhost:8000
 2. **View Nearby Stops** - See bus stops sorted by distance
 3. **Select a Stop** - Click any stop to see upcoming arrivals
 4. **Check Arrival Times** - See when buses will arrive in minutes
-5. **Toggle Theme** - Click the moon/sun icon for dark/light mode
-6. **Refresh** - Click refresh to update your location
+5. **Save Favorites** - Click the star (☆) on any stop to save it
+6. **View Favorites** - Click "⭐ Favorites" to see your saved stops
+7. **Toggle Theme** - Click the moon/sun icon for dark/light mode
+8. **Refresh** - Click refresh to update your location
+
+## Supabase Setup (Optional)
+
+The app works without Supabase using localStorage. To enable cloud storage:
+
+1. Create a [Supabase](https://supabase.com) project
+2. Run the SQL schema from `SUPABASE_SCHEMA.md`
+3. Update `app.js` with your Supabase URL and anon key
+
+See `SUPABASE_SCHEMA.md` for detailed setup instructions.
 
 ## Browser Compatibility
 
@@ -75,12 +90,14 @@ php -S localhost:8000
 
 ## Future Enhancements
 
-- [ ] Supabase integration for favorites and history
+- [x] Supabase integration for favorites
+- [ ] User authentication
 - [ ] Route planning
 - [ ] Push notifications for selected arrivals
 - [ ] Service alerts and delays
 - [ ] Subway integration
 - [ ] Offline support with service workers
+- [ ] Historical arrival data and analytics
 
 ## License
 
