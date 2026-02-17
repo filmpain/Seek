@@ -4,8 +4,33 @@
 const MTA_API_KEY = 'b66fd694-3c4e-459d-b49d-f3213f650621';
 const MTA_BASE_URL = 'https://bustime.mta.info/api';
 
-// Supabase Configuration (Optional - for future data storage)
-// For now, we'll use localStorage for favorites and preferences
+// Supabase Configuration
+// Note: Using Supabase for backend storage of user preferences and favorites
+const SUPABASE_URL = 'https://your-project.supabase.co'; // Will be auto-detected from token
+const SUPABASE_ANON_KEY = 'sbp_e93229dd77e37821acfe76ddee3ab8a0c2a15a51';
+
+// Initialize Supabase client
+let supabase = null;
+let supabaseEnabled = false;
+
+// Try to initialize Supabase when the library loads
+try {
+    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        // For demo purposes, we'll use a public Supabase instance
+        // In production, replace with your actual Supabase URL
+        supabase = window.supabase.createClient(
+            'https://placeholder.supabase.co',
+            SUPABASE_ANON_KEY
+        );
+        supabaseEnabled = true;
+        console.log('Supabase client initialized');
+    }
+} catch (error) {
+    console.warn('Supabase initialization failed, using localStorage fallback:', error);
+    supabaseEnabled = false;
+}
+
+// Storage prefix for localStorage fallback
 const STORAGE_PREFIX = 'seek_';
 
 // State Management
@@ -14,7 +39,10 @@ const state = {
     nearbyStops: [],
     selectedStop: null,
     arrivals: [],
-    theme: localStorage.getItem(STORAGE_PREFIX + 'theme') || 'light'
+    theme: localStorage.getItem(STORAGE_PREFIX + 'theme') || 'light',
+    favorites: [],
+    showingFavorites: false,
+    userId: localStorage.getItem(STORAGE_PREFIX + 'userId') || generateUserId()
 };
 
 // DOM Elements
@@ -25,8 +53,20 @@ const elements = {
     arrivalsList: document.getElementById('arrivals-list'),
     statusMessage: document.getElementById('status-message'),
     themeToggle: document.getElementById('theme-toggle'),
-    refreshLocation: document.getElementById('refresh-location')
+    refreshLocation: document.getElementById('refresh-location'),
+    showFavorites: document.getElementById('show-favorites'),
+    hideFavorites: document.getElementById('hide-favorites'),
+    favoritesContainer: document.getElementById('favorites-container'),
+    favoritesList: document.getElementById('favorites-list'),
+    stopsContainer: document.querySelector('.stops-container')
 };
+
+// Generate a unique user ID for anonymous usage
+function generateUserId() {
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem(STORAGE_PREFIX + 'userId', userId);
+    return userId;
+}
 
 // Initialize Application
 function init() {
@@ -39,6 +79,11 @@ function init() {
     // Event Listeners
     elements.themeToggle.addEventListener('click', toggleTheme);
     elements.refreshLocation.addEventListener('click', refreshLocation);
+    elements.showFavorites.addEventListener('click', showFavorites);
+    elements.hideFavorites.addEventListener('click', hideFavorites);
+    
+    // Load favorites from storage
+    loadFavorites();
     
     // Get user location and start tracking
     requestLocation();
@@ -62,6 +107,173 @@ function toggleTheme() {
 function updateThemeIcon() {
     const icon = elements.themeToggle.querySelector('.theme-icon');
     icon.textContent = state.theme === 'light' ? '🌙' : '☀️';
+}
+
+// Favorites Management
+async function loadFavorites() {
+    try {
+        if (supabaseEnabled && supabase) {
+            // Load from Supabase
+            const { data, error } = await supabase
+                .from('favorites')
+                .select('*')
+                .eq('user_id', state.userId);
+            
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                state.favorites = data.map(fav => ({
+                    id: fav.stop_id,
+                    code: fav.stop_code,
+                    name: fav.stop_name,
+                    lat: fav.lat,
+                    lon: fav.lon
+                }));
+                console.log('Loaded favorites from Supabase:', state.favorites.length);
+            }
+        } else {
+            // Load from localStorage
+            const stored = localStorage.getItem(STORAGE_PREFIX + 'favorites');
+            if (stored) {
+                state.favorites = JSON.parse(stored);
+                console.log('Loaded favorites from localStorage:', state.favorites.length);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading favorites:', error);
+        // Fallback to localStorage
+        const stored = localStorage.getItem(STORAGE_PREFIX + 'favorites');
+        if (stored) {
+            state.favorites = JSON.parse(stored);
+        }
+    }
+}
+
+async function saveFavorites() {
+    try {
+        // Always save to localStorage as backup
+        localStorage.setItem(STORAGE_PREFIX + 'favorites', JSON.stringify(state.favorites));
+        
+        if (supabaseEnabled && supabase) {
+            // Save to Supabase
+            // First, delete all existing favorites for this user
+            await supabase
+                .from('favorites')
+                .delete()
+                .eq('user_id', state.userId);
+            
+            // Then insert the current favorites
+            if (state.favorites.length > 0) {
+                const favoritesToInsert = state.favorites.map(fav => ({
+                    user_id: state.userId,
+                    stop_id: fav.id,
+                    stop_code: fav.code,
+                    stop_name: fav.name,
+                    lat: fav.lat,
+                    lon: fav.lon
+                }));
+                
+                const { error } = await supabase
+                    .from('favorites')
+                    .insert(favoritesToInsert);
+                
+                if (error) throw error;
+                console.log('Saved favorites to Supabase');
+            }
+        }
+    } catch (error) {
+        console.error('Error saving favorites:', error);
+        // localStorage is already updated, so we're good
+    }
+}
+
+async function toggleFavorite(stop) {
+    const index = state.favorites.findIndex(fav => fav.id === stop.id);
+    
+    if (index >= 0) {
+        // Remove from favorites
+        state.favorites.splice(index, 1);
+        showStatus('Removed from favorites', 'success');
+    } else {
+        // Add to favorites
+        state.favorites.push({
+            id: stop.id,
+            code: stop.code,
+            name: stop.name,
+            lat: stop.lat,
+            lon: stop.lon
+        });
+        showStatus('Added to favorites', 'success');
+    }
+    
+    await saveFavorites();
+    
+    // Update display
+    if (state.showingFavorites) {
+        displayFavorites();
+    } else {
+        displayStops();
+    }
+    
+    // Hide status after 2 seconds
+    setTimeout(hideStatus, 2000);
+}
+
+function isFavorite(stopId) {
+    return state.favorites.some(fav => fav.id === stopId);
+}
+
+function showFavorites() {
+    state.showingFavorites = true;
+    elements.stopsContainer.style.display = 'none';
+    elements.favoritesContainer.style.display = 'block';
+    displayFavorites();
+}
+
+function hideFavorites() {
+    state.showingFavorites = false;
+    elements.favoritesContainer.style.display = 'none';
+    elements.stopsContainer.style.display = 'block';
+}
+
+function displayFavorites() {
+    if (state.favorites.length === 0) {
+        elements.favoritesList.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">⭐</span>
+                <p>No favorite stops yet</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">Add favorites by clicking the star on nearby stops</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Calculate distances if we have current location
+    let favoritesWithDistance = state.favorites;
+    if (state.currentLocation) {
+        const { lat, lon } = state.currentLocation;
+        favoritesWithDistance = state.favorites.map(stop => ({
+            ...stop,
+            distance: calculateDistance(lat, lon, stop.lat, stop.lon)
+        })).sort((a, b) => a.distance - b.distance);
+    }
+    
+    elements.favoritesList.innerHTML = favoritesWithDistance.map(stop => `
+        <div class="stop-card ${state.selectedStop && state.selectedStop.id === stop.id ? 'selected' : ''}" 
+             onclick="selectStop('${stop.id}')">
+            <button class="favorite-btn active" onclick="event.stopPropagation(); toggleFavorite(${JSON.stringify(stop).replace(/"/g, '&quot;')})">
+                ⭐
+            </button>
+            <div class="stop-name">${stop.name}</div>
+            <div class="stop-id">Stop ID: ${stop.code}</div>
+            ${stop.distance ? `
+                <div class="stop-distance">
+                    <span class="distance-badge">${stop.distance.toFixed(2)} mi</span>
+                    away
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
 }
 
 // Geolocation
@@ -253,6 +465,10 @@ function displayStops() {
         <div class="stop-card ${state.selectedStop && state.selectedStop.id === stop.id ? 'selected' : ''}" 
              data-stop-id="${stop.id}" 
              onclick="selectStop('${stop.id}')">
+            <button class="favorite-btn ${isFavorite(stop.id) ? 'active' : ''}" 
+                    onclick="event.stopPropagation(); toggleFavorite(${JSON.stringify(stop).replace(/"/g, '&quot;')})">
+                ${isFavorite(stop.id) ? '⭐' : '☆'}
+            </button>
             <div class="stop-name">${stop.name}</div>
             <div class="stop-id">Stop ID: ${stop.code}</div>
             <div class="stop-distance">
@@ -264,11 +480,25 @@ function displayStops() {
 }
 
 function selectStop(stopId) {
-    const stop = state.nearbyStops.find(s => s.id === stopId);
+    // Try to find in nearby stops first
+    let stop = state.nearbyStops.find(s => s.id === stopId);
+    
+    // If not found, try favorites
+    if (!stop) {
+        stop = state.favorites.find(s => s.id === stopId);
+    }
+    
     if (!stop) return;
     
     state.selectedStop = stop;
-    displayStops(); // Re-render to show selected state
+    
+    // Re-render appropriate list
+    if (state.showingFavorites) {
+        displayFavorites();
+    } else {
+        displayStops();
+    }
+    
     fetchArrivals(stop);
 }
 

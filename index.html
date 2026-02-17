@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -42,11 +43,28 @@
             <div class="status-message" id="status-message"></div>
 
             <div class="stops-container">
-                <h2 class="section-title">Nearby Bus Stops</h2>
+                <div class="section-header">
+                    <h2 class="section-title">Nearby Bus Stops</h2>
+                    <button id="show-favorites" class="btn-secondary">⭐ Favorites</button>
+                </div>
                 <div id="stops-list" class="stops-list">
                     <div class="loading">
                         <div class="spinner"></div>
                         <p>Loading nearby stops...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="favorites-container" id="favorites-container" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Favorite Stops</h2>
+                    <button id="hide-favorites" class="btn-secondary">🗺️ Nearby</button>
+                </div>
+                <div id="favorites-list" class="stops-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">⭐</span>
+                        <p>No favorite stops yet</p>
+                        <p style="font-size: 0.875rem; margin-top: 0.5rem;">Add favorites by clicking the star on nearby stops</p>
                     </div>
                 </div>
             </div>
