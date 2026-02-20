@@ -7,7 +7,7 @@ Find the closest transit option - Real-time NYC transit tracking
 - 🌍 **GPS Location Tracking** - Automatically detects your current location
 - 🚏 **Nearby Bus Stops** - Shows the closest NYC bus stops with distances
 - 🚇 **Nearby Subway Stations** - Shows the closest NYC subway stations with lines served
-- 🚶 **Walking Time Estimates** - Estimated walk time to each subway station
+- 🚶 **Walking Time Estimates** - Estimated walk time to nearby subway stations
 - ⏰ **Real-time Arrivals** - Live bus arrival times and subway headway schedules
 - 📍 **Cross Streets** - Display your current cross streets
 - 🌓 **Light & Dark Mode** - Seamless theme switching

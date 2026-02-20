@@ -28,7 +28,11 @@ CREATE TABLE IF NOT EXISTS favorites (
 -- Enable Row Level Security
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 
--- Allow anonymous users to read/write their own favorites
+-- Allow anonymous read/write access.
+-- NOTE: This app uses client-generated user IDs (not Supabase Auth),
+-- so RLS cannot enforce per-user isolation via auth.uid().
+-- For production use, integrate Supabase Auth and replace these
+-- policies with ones that check auth.uid().
 CREATE POLICY "Users can read own favorites"
     ON favorites FOR SELECT
     USING (true);
