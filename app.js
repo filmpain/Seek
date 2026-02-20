@@ -5,7 +5,10 @@ const MTA_API_KEY = 'b66fd694-3c4e-459d-b49d-f3213f650621';
 const MTA_BASE_URL = 'https://bustime.mta.info/api';
 
 // Supabase Configuration
-// Note: Using Supabase for backend storage of user preferences and favorites
+// Note: Using Supabase for backend storage of user preferences and favorites.
+// Replace SUPABASE_URL and SUPABASE_ANON_KEY with your own Supabase project
+// credentials. See SUPABASE_CONFIG.md for setup instructions.
+// The app falls back to localStorage when Supabase is not configured.
 const SUPABASE_URL = 'https://oqwgwwjlymliujvaayoa.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xd2d3d2pseW1saXVqdmFheW9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAwMDAwMDAsImV4cCI6MjAzNjAwMDAwMH0.placeholder';
 
