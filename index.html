@@ -15,6 +15,7 @@
             var stored = localStorage.getItem('seek_theme');
             var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.style.colorScheme = theme;
         })();
     </script>
 </head>
@@ -89,7 +90,7 @@
         </main>
 
         <footer>
-            <p>Data provided by NYC MTA Bus Time API</p>
+            <p>Bus data by NYC MTA Bus Time API • Subway stations from GTFS</p>
             <p class="footer-note">Real-time transit tracking for NYC</p>
         </footer>
     </div>
