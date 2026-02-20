@@ -9,6 +9,8 @@
     --accent-primary: #3b82f6;
     --accent-hover: #2563eb;
     --accent-light: #dbeafe;
+    --accent-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    --card-gradient: linear-gradient(135deg, rgba(59,130,246,0.04), rgba(139,92,246,0.04));
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -29,9 +31,31 @@
     --accent-primary: #60a5fa;
     --accent-hover: #3b82f6;
     --accent-light: #1e3a8a;
+    --accent-gradient: linear-gradient(135deg, #60a5fa, #a78bfa);
+    --card-gradient: linear-gradient(135deg, rgba(96,165,250,0.06), rgba(167,139,250,0.06));
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-card: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --accent-primary: #60a5fa;
+        --accent-hover: #3b82f6;
+        --accent-light: #1e3a8a;
+        --accent-gradient: linear-gradient(135deg, #60a5fa, #a78bfa);
+        --card-gradient: linear-gradient(135deg, rgba(96,165,250,0.06), rgba(167,139,250,0.06));
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
 }
 
 * {
@@ -77,6 +101,10 @@ header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .logo-icon {
@@ -161,7 +189,7 @@ header {
 }
 
 .btn-refresh {
-    background: var(--accent-primary);
+    background: var(--accent-gradient);
     color: white;
     border: none;
     border-radius: 0.5rem;
@@ -266,7 +294,7 @@ header {
 }
 
 .stop-card {
-    background: var(--bg-card);
+    background: var(--card-gradient), var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 0.75rem;
     padding: 1.25rem;
@@ -284,6 +312,7 @@ header {
 
 .stop-card.selected {
     border-color: var(--accent-primary);
+    border-width: 2px;
     background: var(--accent-light);
 }
 
@@ -347,7 +376,7 @@ header {
 }
 
 .arrival-card {
-    background: var(--bg-card);
+    background: var(--card-gradient), var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 0.75rem;
     padding: 1.25rem;
@@ -368,7 +397,7 @@ header {
 
 .route-badge {
     display: inline-block;
-    background: var(--accent-primary);
+    background: var(--accent-gradient);
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
@@ -399,9 +428,12 @@ header {
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-weight: 600;
-    font-size: 1.25rem;
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
     display: inline-block;
     margin-bottom: 0.25rem;
+    min-width: 5rem;
+    text-align: center;
 }
 
 .time-badge.soon {
@@ -442,6 +474,11 @@ header {
     font-size: 3rem;
     display: block;
     margin-bottom: 1rem;
+}
+
+.stop-type-badge {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
 footer {
