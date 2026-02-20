@@ -40,10 +40,11 @@ const state = {
     nearbyStops: [],
     selectedStop: null,
     arrivals: [],
-    theme: localStorage.getItem(STORAGE_PREFIX + 'theme') || 'light',
+    theme: localStorage.getItem(STORAGE_PREFIX + 'theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     favorites: [],
     showingFavorites: false,
-    userId: localStorage.getItem(STORAGE_PREFIX + 'userId') || generateUserId()
+    userId: localStorage.getItem(STORAGE_PREFIX + 'userId') || generateUserId(),
+    countdownInterval: null
 };
 
 // DOM Elements
@@ -76,6 +77,15 @@ function init() {
     // Set initial theme
     document.documentElement.setAttribute('data-theme', state.theme);
     updateThemeIcon();
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem(STORAGE_PREFIX + 'theme')) {
+            state.theme = e.matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', state.theme);
+            updateThemeIcon();
+        }
+    });
     
     // Event Listeners
     elements.themeToggle.addEventListener('click', toggleTheme);
@@ -372,7 +382,7 @@ async function getCrossStreets(lat, lon) {
 async function fetchNearbyStops() {
     if (!state.currentLocation) return;
     
-    showStatus('Finding nearby bus stops...', 'info');
+    showStatus('Finding nearby transit stops...', 'info');
     elements.stopsList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading nearby stops...</p></div>';
     
     try {
@@ -384,7 +394,7 @@ async function fetchNearbyStops() {
         );
         
         if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
+            throw new Error(`API request failed with status ${response.status}`);
         }
         
         const data = await response.json();
@@ -397,12 +407,14 @@ async function fetchNearbyStops() {
                     name: stop.name,
                     lat: stop.lat,
                     lon: stop.lon,
-                    distance: calculateDistance(lat, lon, stop.lat, stop.lon)
+                    distance: calculateDistance(lat, lon, stop.lat, stop.lon),
+                    type: 'bus'
                 }))
                 .sort((a, b) => a.distance - b.distance)
                 .slice(0, 12); // Show top 12 nearest stops
             
             displayStops();
+            autoSelectClosestStop();
             hideStatus();
         } else {
             // If no stops found via API, show demo data
@@ -410,7 +422,7 @@ async function fetchNearbyStops() {
         }
     } catch (error) {
         console.error('Error fetching stops:', error);
-        showStatus('Unable to fetch bus stops. Showing demo data.', 'error');
+        showStatus('Unable to fetch transit stops. Showing demo data.', 'error');
         
         // Show demo data for demonstration
         showDemoStops();
@@ -418,15 +430,24 @@ async function fetchNearbyStops() {
 }
 
 function showDemoStops() {
-    // Demo data for NYC bus stops (example stops in Manhattan)
+    // Demo data for NYC transit stops (bus and train stops in Manhattan)
     state.nearbyStops = [
-        { id: 'MTA_305423', code: '305423', name: '42 ST & 8 AV', lat: 40.757465, lon: -73.989828, distance: 0.2 },
-        { id: 'MTA_305424', code: '305424', name: '42 ST & 7 AV', lat: 40.755983, lon: -73.987495, distance: 0.3 },
-        { id: 'MTA_550960', code: '550960', name: 'TIMES SQ - 42 ST', lat: 40.758899, lon: -73.985652, distance: 0.1 },
-        { id: 'MTA_305430', code: '305430', name: '8 AV & W 40 ST', lat: 40.756762, lon: -73.990420, distance: 0.4 },
-        { id: 'MTA_305435', code: '305435', name: '7 AV & W 40 ST', lat: 40.755344, lon: -73.988015, distance: 0.5 }
+        { id: 'MTA_550960', code: '550960', name: 'TIMES SQ - 42 ST', lat: 40.758899, lon: -73.985652, distance: 0.1, type: 'train' },
+        { id: 'MTA_305423', code: '305423', name: '42 ST & 8 AV', lat: 40.757465, lon: -73.989828, distance: 0.2, type: 'bus' },
+        { id: 'MTA_305424', code: '305424', name: '42 ST & 7 AV', lat: 40.755983, lon: -73.987495, distance: 0.3, type: 'bus' },
+        { id: 'MTA_TRAIN_R16', code: 'R16', name: '34 ST - PENN STATION', lat: 40.750373, lon: -73.991057, distance: 0.35, type: 'train' },
+        { id: 'MTA_305430', code: '305430', name: '8 AV & W 40 ST', lat: 40.756762, lon: -73.990420, distance: 0.4, type: 'bus' },
+        { id: 'MTA_TRAIN_A25', code: 'A25', name: '50 ST (C/E)', lat: 40.762456, lon: -73.985984, distance: 0.45, type: 'train' },
+        { id: 'MTA_305435', code: '305435', name: '7 AV & W 40 ST', lat: 40.755344, lon: -73.988015, distance: 0.5, type: 'bus' }
     ];
     displayStops();
+    autoSelectClosestStop();
+}
+
+function autoSelectClosestStop() {
+    if (state.nearbyStops.length > 0 && !state.selectedStop) {
+        selectStop(state.nearbyStops[0].id);
+    }
 }
 
 function displayStops() {
@@ -435,21 +456,25 @@ function displayStops() {
         return;
     }
     
-    elements.stopsList.innerHTML = state.nearbyStops.map(stop => `
-        <div class="stop-card ${state.selectedStop && state.selectedStop.id === stop.id ? 'selected' : ''}" 
-             data-stop-id="${stop.id}">
-            <button class="favorite-btn ${isFavorite(stop.id) ? 'active' : ''}" 
-                    data-stop-id="${stop.id}" data-action="toggle-favorite">
-                ${isFavorite(stop.id) ? '⭐' : '☆'}
-            </button>
-            <div class="stop-name">${escapeHtml(stop.name)}</div>
-            <div class="stop-id">Stop ID: ${escapeHtml(stop.code)}</div>
-            <div class="stop-distance">
-                <span class="distance-badge">${stop.distance.toFixed(2)} mi</span>
-                away
+    elements.stopsList.innerHTML = state.nearbyStops.map(stop => {
+        const typeIcon = stop.type === 'train' ? '🚇' : '🚌';
+        return `
+            <div class="stop-card ${state.selectedStop && state.selectedStop.id === stop.id ? 'selected' : ''}" 
+                 data-stop-id="${stop.id}">
+                <button class="favorite-btn ${isFavorite(stop.id) ? 'active' : ''}" 
+                        data-stop-id="${stop.id}" data-action="toggle-favorite">
+                    ${isFavorite(stop.id) ? '⭐' : '☆'}
+                </button>
+                <div class="stop-type-badge">${typeIcon}</div>
+                <div class="stop-name">${escapeHtml(stop.name)}</div>
+                <div class="stop-id">Stop ID: ${escapeHtml(stop.code)}</div>
+                <div class="stop-distance">
+                    <span class="distance-badge">${stop.distance.toFixed(2)} mi</span>
+                    away
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
     
     // Add event listeners after rendering
     addStopCardListeners(elements.stopsList);
@@ -577,6 +602,7 @@ async function fetchArrivals(stop) {
             });
             
             displayArrivals();
+            startCountdown();
             hideStatus();
         } else {
             // Show demo arrivals if no real data
@@ -592,39 +618,75 @@ async function fetchArrivals(stop) {
 }
 
 function showDemoArrivals(stop) {
-    // Demo arrival data
+    // Demo arrival data with both bus and train routes
     const now = new Date();
-    state.arrivals = [
-        {
-            route: 'M42',
-            destination: 'Port Authority',
-            expectedArrival: new Date(now.getTime() + 3 * 60000).toISOString(),
-            distance: '0.8 miles away',
-            stopsAway: 3
-        },
-        {
-            route: 'M104',
-            destination: 'Penn Station',
-            expectedArrival: new Date(now.getTime() + 7 * 60000).toISOString(),
-            distance: '1.2 miles away',
-            stopsAway: 5
-        },
-        {
-            route: 'M7',
-            destination: 'E 12th St',
-            expectedArrival: new Date(now.getTime() + 12 * 60000).toISOString(),
-            distance: '2.1 miles away',
-            stopsAway: 8
-        },
-        {
-            route: 'M20',
-            destination: 'West Village',
-            expectedArrival: new Date(now.getTime() + 18 * 60000).toISOString(),
-            distance: '3.0 miles away',
-            stopsAway: 12
-        }
-    ];
+    const isTrain = stop.type === 'train';
+    
+    if (isTrain) {
+        state.arrivals = [
+            {
+                route: '1',
+                destination: 'South Ferry',
+                expectedArrival: new Date(now.getTime() + 2 * 60000).toISOString(),
+                distance: 'Approaching',
+                stopsAway: 1
+            },
+            {
+                route: 'N',
+                destination: 'Coney Island',
+                expectedArrival: new Date(now.getTime() + 5 * 60000).toISOString(),
+                distance: '2 stops away',
+                stopsAway: 2
+            },
+            {
+                route: '7',
+                destination: 'Flushing',
+                expectedArrival: new Date(now.getTime() + 9 * 60000).toISOString(),
+                distance: '4 stops away',
+                stopsAway: 4
+            },
+            {
+                route: 'S',
+                destination: 'Grand Central',
+                expectedArrival: new Date(now.getTime() + 14 * 60000).toISOString(),
+                distance: '6 stops away',
+                stopsAway: 6
+            }
+        ];
+    } else {
+        state.arrivals = [
+            {
+                route: 'M42',
+                destination: 'Port Authority',
+                expectedArrival: new Date(now.getTime() + 3 * 60000).toISOString(),
+                distance: '0.8 miles away',
+                stopsAway: 3
+            },
+            {
+                route: 'M104',
+                destination: 'Penn Station',
+                expectedArrival: new Date(now.getTime() + 7 * 60000).toISOString(),
+                distance: '1.2 miles away',
+                stopsAway: 5
+            },
+            {
+                route: 'M7',
+                destination: 'E 12th St',
+                expectedArrival: new Date(now.getTime() + 12 * 60000).toISOString(),
+                distance: '2.1 miles away',
+                stopsAway: 8
+            },
+            {
+                route: 'M20',
+                destination: 'West Village',
+                expectedArrival: new Date(now.getTime() + 18 * 60000).toISOString(),
+                distance: '3.0 miles away',
+                stopsAway: 12
+            }
+        ];
+    }
     displayArrivals();
+    startCountdown();
 }
 
 function displayArrivals() {
@@ -635,6 +697,7 @@ function displayArrivals() {
     
     elements.arrivalsList.innerHTML = state.arrivals.map(arrival => {
         const minutesUntil = getMinutesUntil(arrival.expectedArrival);
+        const secondsUntil = getSecondsUntil(arrival.expectedArrival);
         const timeClass = minutesUntil <= 2 ? 'now' : minutesUntil <= 5 ? 'soon' : '';
         const arrivalTime = new Date(arrival.expectedArrival);
         
@@ -646,14 +709,61 @@ function displayArrivals() {
                     <div class="stop-info">${escapeHtml(arrival.distance)}${arrival.stopsAway ? ` \u2022 ${arrival.stopsAway} stops away` : ''}</div>
                 </div>
                 <div class="arrival-time">
-                    <div class="time-badge ${timeClass}">
-                        ${minutesUntil <= 1 ? 'Now' : `${minutesUntil} min`}
+                    <div class="time-badge ${timeClass}" data-arrival-time="${arrival.expectedArrival}">
+                        ${formatCountdown(secondsUntil)}
                     </div>
                     <div class="actual-time">${formatTime(arrivalTime)}</div>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+function getSecondsUntil(timestamp) {
+    const now = new Date();
+    const arrival = new Date(timestamp);
+    const diff = arrival - now;
+    return Math.max(0, Math.floor(diff / 1000));
+}
+
+function formatCountdown(totalSeconds) {
+    if (totalSeconds <= 30) return 'Now';
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes === 0) return `${seconds}s`;
+    return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+}
+
+function startCountdown() {
+    // Clear any existing countdown interval
+    if (state.countdownInterval) {
+        clearInterval(state.countdownInterval);
+    }
+    
+    state.countdownInterval = setInterval(() => {
+        const badges = document.querySelectorAll('.time-badge[data-arrival-time]');
+        if (badges.length === 0) {
+            clearInterval(state.countdownInterval);
+            state.countdownInterval = null;
+            return;
+        }
+        
+        badges.forEach(badge => {
+            const arrivalTime = badge.getAttribute('data-arrival-time');
+            const secondsUntil = getSecondsUntil(arrivalTime);
+            const minutesUntil = Math.floor(secondsUntil / 60);
+            
+            badge.textContent = formatCountdown(secondsUntil);
+            
+            // Update color classes
+            badge.classList.remove('now', 'soon');
+            if (minutesUntil <= 2) {
+                badge.classList.add('now');
+            } else if (minutesUntil <= 5) {
+                badge.classList.add('soon');
+            }
+        });
+    }, 1000);
 }
 
 // Utility Functions
