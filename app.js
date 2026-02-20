@@ -285,6 +285,10 @@ function init() {
     elements.showFavorites.addEventListener('click', showFavorites);
     elements.hideFavorites.addEventListener('click', hideFavorites);
     
+    // Set up event delegation for stop cards (once, not per render)
+    addStopCardListeners(elements.stopsList);
+    addStopCardListeners(elements.favoritesList);
+    
     // Load favorites from storage
     loadFavorites();
     
@@ -457,9 +461,6 @@ function displayFavorites() {
             ` : ''}
         </div>
     `).join('');
-    
-    // Add event listeners after rendering
-    addStopCardListeners(elements.favoritesList);
 }
 
 // Geolocation
@@ -695,9 +696,6 @@ function displayStops() {
             </div>
         `;
     }).join('');
-    
-    // Add event listeners after rendering
-    addStopCardListeners(elements.stopsList);
 }
 
 // Event delegation for stop cards
