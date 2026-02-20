@@ -799,16 +799,38 @@ async function fetchArrivals(stop) {
     }
     
     try {
-        // MTA Bus Time API - Get arrivals and departures for stop
-        const response = await fetch(
-            `${MTA_BASE_URL}/siri/stop-monitoring.json?key=${encodeURIComponent(MTA_API_KEY)}&MonitoringRef=${encodeURIComponent(stop.id)}&MaximumStopVisits=10`
-        );
-        
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
+        let data;
+        if (supabaseEnabled) {
+            // Use Supabase Edge Function to proxy MTA API requests
+            const response = await fetch(
+                `${SUPABASE_URL}/functions/v1/get-arrivals`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({ stopId: stop.id, maxVisits: 10 })
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+            
+            data = await response.json();
+        } else {
+            // Fallback: Direct MTA Bus Time API call
+            const response = await fetch(
+                `${MTA_BASE_URL}/siri/stop-monitoring.json?key=${encodeURIComponent(MTA_API_KEY)}&MonitoringRef=${encodeURIComponent(stop.id)}&MaximumStopVisits=10`
+            );
+            
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+            
+            data = await response.json();
         }
-        
-        const data = await response.json();
         const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
         
         if (visits.length > 0) {
