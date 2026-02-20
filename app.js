@@ -810,7 +810,7 @@ async function fetchArrivals(stop) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
                     },
-                    body: JSON.stringify({ stopId: stop.id })
+                    body: JSON.stringify({ stopId: stop.id, maxVisits: 10 })
                 }
             );
             
