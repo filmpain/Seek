@@ -1,12 +1,14 @@
 # Seek 🚌
 
-Find the closest transit option - Real-time NYC bus tracking
+Find the closest transit option - Real-time NYC transit tracking
 
 ## Features
 
 - 🌍 **GPS Location Tracking** - Automatically detects your current location
 - 🚏 **Nearby Bus Stops** - Shows the closest NYC bus stops with distances
-- ⏰ **Real-time Arrivals** - Live arrival times in minutes
+- 🚇 **Nearby Subway Stations** - Shows the closest NYC subway stations with lines served
+- 🚶 **Walking Time Estimates** - Estimated walk time to nearby subway stations
+- ⏰ **Real-time Arrivals** - Live bus arrival times and subway headway schedules
 - 📍 **Cross Streets** - Display your current cross streets
 - 🌓 **Light & Dark Mode** - Seamless theme switching
 - 📱 **Responsive Design** - Works on all devices
@@ -20,7 +22,8 @@ Visit the live app: [https://filmpain.github.io/Seek/](https://filmpain.github.i
 
 ## Technologies
 
-- **NYC MTA Bus Time API** - Real-time transit data
+- **NYC MTA Bus Time API** - Real-time bus transit data
+- **NYC Subway Station Data** - Static GTFS-based subway station coordinates and lines
 - **Geolocation API** - Precise location tracking
 - **OpenStreetMap Nominatim** - Reverse geocoding for cross streets
 - **Supabase** - Backend database for favorites and preferences
